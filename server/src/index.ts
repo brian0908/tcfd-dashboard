@@ -47,63 +47,93 @@ function getDamageRatio(depth: number): number {
 }
 
 // --- 3. API ENDPOINT ---
-app.get('/api/risk', async (req, res) => {
+app.get('/api/risk', (req, res) => {
   try {
     const { scenario, year, returnPeriod } = req.query; 
-    // Defaults: rcp8p5, 2050, 100
+    
+    // 1. Sanitize Inputs (Fixing the RP 10 issue)
     const sc = scenario || 'rcp8p5';
     const yr = Number(year) || 2050;
-    const rp = Number(returnPeriod) || 100;
+    // Force valid return periods. If user asks for 10, bump it to 25.
+    let rp = Number(returnPeriod) || 100;
+    const VALID_RPS = [25, 50, 100, 200, 500, 1000];
+    if (!VALID_RPS.includes(rp)) {
+      console.log(`⚠️ Warning: RP ${rp} is invalid. Defaulting to 25.`);
+      rp = 25;
+    }
 
     console.log(`Calculating for: ${sc} / ${yr} / RP${rp}`);
 
-    // A. Setup GEE Objects
+    // 2. Setup GEE Objects
     const pts = ee.FeatureCollection(
       FACTORIES.map(f => ee.Feature(ee.Geometry.Point(f.coords), { pid: f.pid }))
     );
 
-    // B. Load Image (WRI Aqueduct)
     const dataset = ee.ImageCollection('WRI/Aqueduct_Flood_Hazard_Maps/V2')
       .filter(ee.Filter.eq('floodtype', 'inunriver'))
       .filter(ee.Filter.eq('climatescenario', sc))
       .filter(ee.Filter.eq('returnperiod', rp))
       .filter(ee.Filter.eq('year', yr));
     
-    // Model preference logic (simplified)
-    const modelPref = dataset.filter(ee.Filter.eq('model', '0000GFDL_ESM2M'));
-    const finalCol = ee.ImageCollection(
-      ee.Algorithms.If(modelPref.size().gt(0), modelPref, dataset)
-    );
-    
-    const img = ee.Image(finalCol.first()).select('inundation_depth').unmask(0);
-
-    // C. Execute Query (Server-side)
-    // We use getInfo() to fetch data synchronously to this Node server
-    const data = img.reduceRegions({
-      collection: pts,
-      reducer: ee.Reducer.mean(),
-      scale: 30
-    }).getInfo();
-
-    // D. Merge Data & Calculate Financials
-    const results = data.features.map((f: any) => {
-      const pid = f.properties.pid;
-      const factory = FACTORIES.find(fac => fac.pid === pid);
-      const depth = f.properties.mean || 0;
+    // 3. CHECK IF DATA EXISTS (The Fix!)
+    // We use 'evaluate' to check size asynchronously.
+    dataset.size().evaluate((count: number, error: any) => {
+      if (error) {
+        console.error("❌ GEE Error:", error);
+        return res.status(500).json({ error: error.message });
+      }
       
-      const damageRatio = getDamageRatio(depth);
-      const loss = (factory?.asset_value || 0) * damageRatio;
+      if (count === 0) {
+        console.warn("⚠️ No data found for this combo. Returning 0s.");
+        // Return safe "zero" data instead of hanging
+        const emptyResults = FACTORIES.map(f => ({
+          ...f, depth_m: 0, financial_loss: 0, risk_level: 'No Data'
+        }));
+        return res.json(emptyResults);
+      }
 
-      return {
-        ...factory,
-        depth_m: depth,
-        damage_ratio: damageRatio,
-        financial_loss: loss,
-        risk_level: loss > 10000000 ? 'High' : (loss > 0 ? 'Medium' : 'Low')
-      };
+      // If data exists, proceed...
+      const modelPref = dataset.filter(ee.Filter.eq('model', '0000GFDL_ESM2M'));
+      const finalCol = ee.ImageCollection(
+        ee.Algorithms.If(modelPref.size().gt(0), modelPref, dataset)
+      );
+      
+      const img = ee.Image(finalCol.first()).select('inundation_depth').unmask(0);
+
+      // 4. EXECUTE (Using evaluate instead of getInfo)
+      // This prevents the server from freezing while waiting for Google.
+      img.reduceRegions({
+        collection: pts,
+        reducer: ee.Reducer.mean(),
+        scale: 30
+      }).evaluate((data: any, error: any) => {
+        if (error) {
+          console.error("❌ Reduction Error:", error);
+          return res.status(500).json({ error: error.message });
+        }
+
+        // 5. Process Results
+        const results = data.features.map((f: any) => {
+          const pid = f.properties.pid;
+          const factory = FACTORIES.find(fac => fac.pid === pid);
+          const depth = f.properties.mean || 0;
+          
+          const damageRatio = getDamageRatio(depth);
+          const loss = (factory?.asset_value || 0) * damageRatio;
+
+          return {
+            ...factory,
+            depth_m: depth,
+            damage_ratio: damageRatio,
+            financial_loss: loss,
+            risk_level: loss > 10000000 ? 'High' : (loss > 0 ? 'Medium' : 'Low')
+          };
+        });
+
+        console.log("✅ Data sent to Client!");
+        res.json(results);
+      });
     });
-
-    res.json(results);
 
   } catch (err: any) {
     console.error(err);
@@ -112,10 +142,36 @@ app.get('/api/risk', async (req, res) => {
 });
 
 // --- 4. INITIALIZE & START ---
-console.log("Authenticating with Earth Engine...");
-ee.data.authenticateViaPrivateKey(privateKey, () => {
-  ee.initialize(null, null, () => {
-    console.log("Earth Engine Initialized.");
-    app.listen(3001, () => console.log("Server running on http://localhost:3001"));
-  });
-}, (e: any) => console.error("Auth Error:", e));
+console.log("1. System checks starting...");
+
+try {
+  // Check if key loaded correctly
+  if (!privateKey.private_key) {
+    throw new Error("Key file looks wrong. Does it have a 'private_key' field?");
+  }
+  console.log("2. Key file valid. Attempting to authenticate with Google...");
+
+  ee.data.authenticateViaPrivateKey(privateKey, 
+    () => {
+      console.log("3. Authentication SUCCESS! Now initializing Earth Engine...");
+      
+      ee.initialize(null, null, 
+        () => {
+          console.log("4. Initialization SUCCESS!");
+          app.listen(3001, () => {
+            console.log("✅ SERVER READY on http://localhost:3001");
+            console.log("   (Go to your React app now)");
+          });
+        },
+        (err: any) => {
+          console.error("❌ ERROR during ee.initialize():", err);
+        }
+      );
+    },
+    (err: any) => {
+      console.error("❌ ERROR during authenticateViaPrivateKey:", err);
+    }
+  );
+} catch (e) {
+  console.error("❌ CRITICAL ERROR:", e);
+}
