@@ -4,8 +4,7 @@ import axios from 'axios';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import 'mapbox-gl/dist/mapbox-gl.css';
 
-// TEMPORARY: Remove the actual key string
-mapboxgl.accessToken = import.meta.env.VITE_MAPBOX_TOKEN || '';
+mapboxgl.accessToken = 'pk.eyJ1IjoibGVlYnJpYW4wOTA4IiwiYSI6ImNtbG1nMGk3cTBqdGkzanB2bWFncmtkZW8ifQ.ElgMiOpm7mhP-pqZBTJ6wA';
 
 function App() {
   const mapContainer = useRef<HTMLDivElement>(null);
@@ -14,26 +13,51 @@ function App() {
   const [params, setParams] = useState({ scenario: 'rcp8p5', year: '2050', rp: '100' });
   const [loading, setLoading] = useState(false);
 
-  // 1. Initialize Map
+  // Helper: Create a visible square (0.02 deg ~ 2km wide)
+  const createSquare = (coords: number[], size: number = 0.02) => {
+    const [lon, lat] = coords;
+    return [[
+      [lon - size, lat - size],
+      [lon + size, lat - size],
+      [lon + size, lat + size],
+      [lon - size, lat + size],
+      [lon - size, lat - size]
+    ]];
+  };
+
   useEffect(() => {
     if (map.current || !mapContainer.current) return;
 
     map.current = new mapboxgl.Map({
       container: mapContainer.current,
       style: 'mapbox://styles/mapbox/light-v11',
-      center: [110, 20], // Center on Asia
-      zoom: 3,
-      pitch: 45, // 3D effect
+      center: [121, 23], // Taiwan
+      zoom: 4,
+      pitch: 60, // Tilt for 3D
     });
 
     map.current.on('load', () => {
-      // Add a source for our factories
+      // 1. Add Source
       map.current?.addSource('factories', {
         type: 'geojson',
         data: { type: 'FeatureCollection', features: [] }
       });
 
-      // Add 3D Bars Layer
+      // 2. Add "Base" Circles (ALWAYS VISIBLE)
+      // This ensures you see the location even if 3D bar is 0 height
+      map.current?.addLayer({
+        id: 'factory-dots',
+        type: 'circle',
+        source: 'factories',
+        paint: {
+          'circle-radius': 6,
+          'circle-color': '#555',
+          'circle-stroke-width': 2,
+          'circle-stroke-color': '#fff'
+        }
+      });
+
+      // 3. Add 3D Bars
       map.current?.addLayer({
         id: 'loss-bars',
         type: 'fill-extrusion',
@@ -41,35 +65,44 @@ function App() {
         paint: {
           'fill-extrusion-color': [
             'interpolate', ['linear'], ['get', 'loss'],
-            0, '#4ade80',      // Green (No loss)
-            1000000, '#facc15', // Yellow
-            10000000, '#ef4444' // Red (High loss)
+            0, '#94a3b8',        // Gray if $0 Loss
+            1, '#4ade80',        // Green if small loss
+            10000000, '#ef4444'  // Red if high loss
           ],
-          // Height = Loss Value scaled down so it fits on map
-          'fill-extrusion-height': ['*', ['get', 'loss'], 0.00005], 
-          'fill-extrusion-base': 0,
-          'fill-extrusion-opacity': 0.8
+          // Height logic: If loss > 0, scale it. If 0, give it a tiny base (2000m) so it's visible.
+          'fill-extrusion-height': [
+             'case',
+             ['>', ['get', 'loss'], 0], ['*', ['get', 'loss'], 0.0001], // Scale real loss
+             2000 // Default height for "safe" sites
+          ],
+          'fill-extrusion-opacity': 0.9
         }
       });
     });
   }, []);
 
-  // 2. Fetch Data & Update Map
   const fetchData = async () => {
     setLoading(true);
     try {
+      console.log("Fetching data...");
       const res = await axios.get('http://localhost:3001/api/risk', {
         params: { scenario: params.scenario, year: params.year, returnPeriod: params.rp }
       });
+      
       const results = res.data;
+      console.log("Data Received:", results); // CHECK YOUR BROWSER CONSOLE FOR THIS
+
       setData(results);
 
-      // Convert to GeoJSON for Mapbox
       const geojson: any = {
         type: 'FeatureCollection',
         features: results.map((site: any) => ({
           type: 'Feature',
-          geometry: { type: 'Point', coordinates: site.coords },
+          // Create polygon for 3D bar
+          geometry: { 
+            type: 'Polygon', 
+            coordinates: createSquare(site.coords) 
+          },
           properties: {
             loss: site.financial_loss,
             name: site.name,
@@ -78,57 +111,53 @@ function App() {
         }))
       };
 
-      // Update Map Source
       const source: any = map.current?.getSource('factories');
-      if (source) source.setData(geojson);
+      if (source) {
+        source.setData(geojson);
+        console.log("Map updated with", results.length, "sites");
+      }
+
+      // Auto-zoom to show all points
+      if (results.length > 0) {
+        const bounds = new mapboxgl.LngLatBounds();
+        results.forEach((site: any) => bounds.extend(site.coords));
+        map.current?.fitBounds(bounds, { padding: 100, maxZoom: 8 });
+      }
 
     } catch (err) {
       console.error(err);
-      alert("Error fetching data. Is the backend running?");
+      alert("Backend Error! Check terminal.");
     }
     setLoading(false);
   };
 
   return (
     <div style={{ display: 'flex', height: '100vh', width: '100vw' }}>
-      {/* Sidebar Controls */}
-      <div style={{ width: '350px', padding: '20px', background: '#f8fafc', borderRight: '1px solid #ddd', display: 'flex', flexDirection: 'column' }}>
-        <h2>TCFD Flood Risk</h2>
-        
-        <label>Scenario</label>
-        <select value={params.scenario} onChange={e => setParams({...params, scenario: e.target.value})}>
-          <option value="rcp4p5">RCP 4.5</option>
-          <option value="rcp8p5">RCP 8.5</option>
-        </select>
+      <div style={{ width: '350px', padding: '20px', background: '#f8fafc', overflowY: 'auto' }}>
+        <h2>TCFD Dashboard</h2>
+        <div style={{display: 'flex', gap: '10px', flexDirection: 'column'}}>
+            <label>Year</label>
+            <select value={params.year} onChange={e => setParams({...params, year: e.target.value})} style={{padding: '5px'}}>
+            <option value="2030">2030</option>
+            <option value="2050">2050</option>
+            <option value="2080">2080</option>
+            </select>
+            <button onClick={fetchData} disabled={loading} style={{ padding: '10px', background: '#2563eb', color: 'white', borderRadius: '4px' }}>
+            {loading ? 'Analyzing...' : 'Run Analysis'}
+            </button>
+        </div>
 
-        <label>Year</label>
-        <select value={params.year} onChange={e => setParams({...params, year: e.target.value})}>
-          <option value="2030">2030</option>
-          <option value="2050">2050</option>
-          <option value="2080">2080</option>
-        </select>
-
-        <button onClick={fetchData} disabled={loading} style={{ marginTop: '10px', padding: '10px', background: '#2563eb', color: 'white', border: 'none', cursor: 'pointer' }}>
-          {loading ? 'Calculating...' : 'Run Analysis'}
-        </button>
-
-        <hr />
-        
-        {/* Financial Chart */}
-        <h3>Financial Impact</h3>
-        <div style={{ height: '200px' }}>
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={data}>
-              <XAxis dataKey="name" tick={{fontSize: 10}} interval={0} />
-              <YAxis />
-              <Tooltip />
-              <Bar dataKey="financial_loss" fill="#3b82f6" name="Loss ($)" />
+        <div style={{ height: '250px', marginTop: '20px' }}>
+            <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={data} layout="vertical">
+                <XAxis type="number" hide />
+                <YAxis dataKey="name" type="category" width={100} tick={{fontSize: 9}} />
+                <Tooltip />
+                <Bar dataKey="financial_loss" fill="#3b82f6" radius={[0, 4, 4, 0]} />
             </BarChart>
-          </ResponsiveContainer>
+            </ResponsiveContainer>
         </div>
       </div>
-
-      {/* Map Area */}
       <div ref={mapContainer} style={{ flex: 1 }} />
     </div>
   );
