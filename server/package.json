@@ -1,4 +1,14 @@
 {
+  "name": "server",
+  "version": "1.0.0",
+  "main": "index.js",
+  "license": "ISC",
+  
+  "scripts": {                 
+    "start": "ts-node src/index.ts",
+    "dev": "nodemon src/index.ts"
+  },                             
+
   "dependencies": {
     "@google/earthengine": "^1.7.13",
     "cors": "^2.8.6",
@@ -9,6 +19,7 @@
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
     "@types/node": "^25.2.3",
+    "nodemon": "^3.1.11",
     "ts-node": "^10.9.2",
     "typescript": "^5.9.3"
   }
