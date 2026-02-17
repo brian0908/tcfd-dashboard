@@ -63,7 +63,7 @@ The application queries the **WRI Aqueduct Flood Hazard Maps** stored in Google 
 * **Model:** Aggregated GCMs (General Circulation Models).
 
 ### 2. Financial Loss Calculation
-We utilize **Depth-Damage Functions** to translate flood depth into financial loss:
+We utilize **Depth-Damage Functions** to translate flood depth into financial loss. To ensure precision, we apply **linear interpolation** between the defined data points, allowing for continuous damage estimation at any specific depth.
 * **Industrial Assets:** High sensitivity to low-level flooding (machinery damage).
 * **Commercial Assets:** Moderate sensitivity (structural/inventory damage).
 
