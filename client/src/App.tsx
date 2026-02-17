@@ -313,10 +313,13 @@ function App() {
     return [points];
   };
 
+  // Determine API URL based on environment
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+
   const fetchData = async () => {
     setLoading(true);
     try {
-      const res = await axios.post('http://localhost:3001/api/risk', {
+      const res = await axios.post(`${API_URL}/api/risk`, {
         scenario: params.scenario,
         year: params.year,
         returnPeriod: params.rp,
@@ -501,6 +504,13 @@ function App() {
               <p style={{ fontSize: '0.75rem', color: '#64748b', margin: 0 }}>
                 v.1.0｜2026 安永聯合會計師事務所｜李適軒 Brian Lee
               </p>
+
+              </div>
+
+              <div style={{ padding: '10px 10px 6px 10px', flex: '0 0 auto' }}></div>
+              {/* Upload CSV */}
+              <div>
+
               <p style={{ fontSize: '0.75rem', color: '#64748b', margin: 0 }}>
                 • Analysis powered by Google Earth Engine. 
 
@@ -515,7 +525,7 @@ function App() {
               </p>
             </div>
 
-            <div style={{ padding: '20px 20px 12px 20px', flex: '0 0 auto' }}></div>
+            <div style={{ padding: '10px 10px 6px 10px', flex: '0 0 auto' }}></div>
             {/* Upload CSV */}
             <div>
               <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '0.9rem' }}>

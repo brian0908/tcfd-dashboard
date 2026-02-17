@@ -1,7 +1,30 @@
 import express, { Request, Response } from 'express';
 import cors from 'cors';
+import dotenv from 'dotenv'; // Add dotenv if you want local dev to work smoothly with .env
+dotenv.config();
+
 const ee = require('@google/earthengine');
-const privateKey = require('../ee-leebrian0908-ead07d27b7fb.json');
+
+// REMOVE THIS LINE:
+// const privateKey = require('../ee-leebrian0908-ead07d27b7fb.json');
+
+// ADD THIS: Load key from Environment Variable
+let privateKey: any;
+if (process.env.EE_PRIVATE_KEY) {
+  // If stored as a stringified JSON in env vars (Production)
+  try {
+    privateKey = JSON.parse(process.env.EE_PRIVATE_KEY);
+  } catch (e) {
+    console.error("Failed to parse EE_PRIVATE_KEY environment variable");
+  }
+} else {
+  // Fallback for local development if you still have the file
+  try {
+    privateKey = require('../ee-leebrian0908-ead07d27b7fb.json');
+  } catch(e) {
+    console.error("No local key file found and no EE_PRIVATE_KEY env var set.");
+  }
+}
 
 const app = express();
 app.use(cors());
@@ -243,6 +266,9 @@ app.post('/api/risk', (req: Request, res: Response) => {
 // --- 4. INITIALIZE & START ---
 console.log("1. System checks starting...");
 
+// Use dynamic PORT from environment
+const PORT = process.env.PORT || 3001;
+
 try {
   // Check if key loaded correctly
   if (!privateKey.private_key) {
@@ -257,9 +283,9 @@ try {
       ee.initialize(null, null, 
         () => {
           console.log("4. Initialization SUCCESS!");
-          app.listen(3001, () => {
-            console.log("✅ SERVER READY on http://localhost:3001");
-            console.log("   (Go to your React app now)");
+          // Change port to variable
+          app.listen(PORT, () => {
+            console.log(`✅ SERVER READY on port ${PORT}`);
           });
         },
         (err: any) => {
