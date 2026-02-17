@@ -1,21 +1,31 @@
-﻿name,lat,lon,asset_value,type
-金寶電子工業股份有限公司,25.002766,121.602908,0,commercial
-泰金寶電通(股)公司,25.051773,121.5605552,0,commercial
-凱碩科技(股)公司,25.12251853,121.4999477,631,commercial
-金寶電子 (中國 ) 有限公司,22.78908171,113.7671544,3132,commercial
-泰金寶精密塑膠 ( 東莞 ) 有限公司,22.78908171,113.7671544,3132,industry
-泰金寶光電 ( 蘇州 ) 有限公司,31.17953606,120.6755518,9015,industry
-泰金寶光電 (岳陽 ) 有限公司,29.4739484,113.2320744,15027,industry
-泰金寶精密 (岳陽 ) 有限公司,29.4739484,113.2320744,15027,industry
-Kinpo Electronics (Philippines),14.0136501,121.1792173,0,industry
-Cal-Comp Precision (Philippines),14.12842559,121.1294649,0,industry
-Cal-Comp Technology (Philippines),14.0136501,121.1792173,0,industry
-Kinpo International (Singapore),1.329209488,103.8914746,0,industry
-Cal-Comp Precision (Malaysia),1.624238293,103.6678489,0,industry
-Cal-Comp Precision (Thailand),13.26892833,99.82569178,0,industry
-泰金寶科技股份有限公司,13.7325002,100.5604182,0,industry
-Cal-Comp Industria e Comercio de Eletronicos e Informatica,-3.012716474,-60.03341757,0,industry
-Cal-Comp Industria de Semicondutores,-3.012716474,-60.03341757,0,industry
-Cal-Comp Electronics de Mexico,26.07750132,-98.36382313,0,industry
-Cal-Comp Electronics (USA),33.12331572,-117.2861296,0,industry
-Cal-Comp USA (San Diego),33.12331572,-117.2861296,0,industry
+name,lat,lon,asset_value,type
+臺北社子島工廠,25.1105,121.4988,5000000,industry
+新北三重科技園區,25.0624,121.4925,8000000,industry
+臺北內湖總部,25.0797,121.5753,12000000,commercial
+曼谷工業區,13.8475,100.6083,12000000,industry
+大城府汽車廠,14.3532,100.5694,15000000,industry
+胡志明市物流中心,10.7395,106.7176,6500000,industry
+河內老街市場,21.0333,105.8500,4500000,commercial
+廣州珠江新城,23.1180,113.3245,20000000,commercial
+馬尼拉帕西河岸,14.5936,121.0065,3000000,commercial
+雅加達沿海購物中心,-6.1167,106.7833,9000000,commercial
+東京江戶川區,35.6667,139.8667,25000000,commercial
+大阪淀川工業區,34.7061,135.4987,18000000,industry
+首爾漢江公園,37.5285,126.9333,22000000,commercial
+上海浦東金融中心,31.2304,121.4737,30000000,commercial
+紐約曼哈頓下城,40.7075,-74.0091,50000000,commercial
+紐奧良第九區,29.9667,-90.0417,8000000,industry
+邁阿密海灘,25.7907,-80.1300,12000000,commercial
+溫哥華列治文,49.1666,-123.1336,9500000,commercial
+鹿特丹港,51.9566,4.1258,25000000,industry
+倫敦泰晤士河口,51.4925,0.2234,15000000,industry
+威尼斯聖馬可廣場,45.4342,12.3385,20000000,commercial
+漢堡港口新城,53.5413,9.9966,18000000,commercial
+開羅尼羅河三角洲,30.0444,31.2357,3000000,industry
+拉哥斯維多利亞島,6.4281,3.4219,7000000,commercial
+莫三比克貝拉港,-19.8436,34.8389,2000000,industry
+里約熱內盧馬拉卡納,-22.9121,-43.2302,6500000,commercial
+布宜諾斯艾利斯博卡區,-34.6345,-58.3631,5000000,commercial
+亞馬遜瑪瑙斯港,-3.1362,-60.0246,4500000,industry
+雪梨帕拉馬塔河岸,-33.8136,151.0034,11000000,commercial
+布里斯本河岸,-27.4698,153.0251,9000000,industry
