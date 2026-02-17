@@ -4,7 +4,7 @@ import axios from 'axios';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import 'mapbox-gl/dist/mapbox-gl.css';
 
-mapboxgl.accessToken = 'pk.eyJ1IjoibGVlYnJpYW4wOTA4IiwiYSI6ImNtbG1nMGk3cTBqdGkzanB2bWFncmtkZW8ifQ.ElgMiOpm7mhP-pqZBTJ6wA';
+mapboxgl.accessToken = import.meta.env.VITE_MAPBOX_TOKEN;
 
 type UploadedFactory = {
   pid: number;
