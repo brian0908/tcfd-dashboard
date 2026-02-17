@@ -455,8 +455,8 @@ function App() {
       const values = [
         ...baseHeaders.map(h => original[h] ?? ''),
         Number(site?.depth_m ?? 0).toFixed(4),
-        Math.round(Number(site?.financial_loss ?? 0)),
-        Number(site?.damage_ratio ?? 0).toFixed(6)
+        Number(site?.damage_ratio ?? 0).toFixed(6),
+        Math.round(Number(site?.financial_loss ?? 0))
       ];
       lines.push(values.map(escapeCsvValue).join(','));
     });
