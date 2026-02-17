@@ -621,7 +621,7 @@ function App() {
                   step={100}
                   value={params.bufferM}
                   onChange={e => setParams({ ...params, bufferM: e.target.value })}
-                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                  style={{ width: '92.5%', padding: '8px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
                 />
               </div>
 
