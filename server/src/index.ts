@@ -5,9 +5,6 @@ dotenv.config();
 
 const ee = require('@google/earthengine');
 
-// REMOVE THIS LINE:
-// const privateKey = require('../ee-leebrian0908-ead07d27b7fb.json');
-
 // ADD THIS: Load key from Environment Variable
 let privateKey: any;
 if (process.env.EE_PRIVATE_KEY) {
@@ -18,10 +15,7 @@ if (process.env.EE_PRIVATE_KEY) {
     console.error("Failed to parse EE_PRIVATE_KEY environment variable");
   }
 } else {
-  // Fallback for local development if you still have the file
-  try {
-    privateKey = require('../ee-leebrian0908-ead07d27b7fb.json');
-  } catch(e) {
+ catch(e) {
     console.error("No local key file found and no EE_PRIVATE_KEY env var set.");
   }
 }
