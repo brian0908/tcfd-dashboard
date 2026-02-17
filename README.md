@@ -124,7 +124,7 @@ npm run dev
 
 ---
 
-## 📂 CSV Template Format
+## CSV Template Format
 
 To analyze your own data, upload a CSV file with the following columns.  
 > **Note:** Ensure the file is saved as **UTF-8 with BOM** if using Chinese characters.
