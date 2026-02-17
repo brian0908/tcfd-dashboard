@@ -7,17 +7,21 @@ const ee = require('@google/earthengine');
 
 // ADD THIS: Load key from Environment Variable
 let privateKey: any;
-if (process.env.EE_PRIVATE_KEY) {
-  // If stored as a stringified JSON in env vars (Production)
-  try {
+try {
+  if (process.env.EE_PRIVATE_KEY) {
+    // PRODUCTION: Load from Environment Variable
+    console.log("🔑 Loading key from EE_PRIVATE_KEY env var...");
     privateKey = JSON.parse(process.env.EE_PRIVATE_KEY);
-  } catch (e) {
-    console.error("Failed to parse EE_PRIVATE_KEY environment variable");
+  } else {
+    // LOCAL DEV: Load from file (Update path if needed)
+    console.log("💻 Loading key from local file...");
+    // Update this filename to match your actual local file
+    privateKey = require('../ee-leebrian0908-ead07d27b7fb.json'); 
   }
-} else {
- catch(e) {
-    console.error("No local key file found and no EE_PRIVATE_KEY env var set.");
-  }
+} catch (error) {
+  console.error("❌ CRITICAL: Could not load GEE Private Key.");
+  console.error("Make sure EE_PRIVATE_KEY is set in Render, or the JSON file exists locally.");
+  process.exit(1); // Stop server if no key
 }
 
 const app = express();
