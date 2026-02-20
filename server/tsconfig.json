@@ -23,7 +23,6 @@
     "strict": true,
     // "jsx": "react-jsx", // <-- REMOVED (This is a backend server, not React)
     "isolatedModules": true,
-    "noUncheckedSideEffectImports": true,
     "moduleDetection": "force",
     "forceConsistentCasingInFileNames": true,
     "skipLibCheck": true

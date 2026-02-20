@@ -3,6 +3,13 @@ import cors from 'cors';
 import dotenv from 'dotenv'; // Add dotenv if you want local dev to work smoothly with .env
 dotenv.config();
 
+// Fix SSL certificate issues in local development (corporate proxy/firewall)
+// Only disable SSL verification in development, never in production
+if (process.env.NODE_ENV !== 'production' && !process.env.EE_PRIVATE_KEY) {
+  process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+  console.log("⚠️  SSL verification disabled for local development only");
+}
+
 const ee = require('@google/earthengine');
 
 // ADD THIS: Load key from Environment Variable
@@ -16,7 +23,7 @@ try {
     // LOCAL DEV: Load from file (Update path if needed)
     console.log("💻 Loading key from local file...");
     // Update this filename to match your actual local file
-    privateKey = require('../ee-leebrian0908-ead07d27b7fb.json'); 
+    privateKey = require('../../ee-key.json'); 
   }
 } catch (error) {
   console.error("❌ CRITICAL: Could not load GEE Private Key.");
