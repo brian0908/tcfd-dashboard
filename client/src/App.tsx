@@ -4,7 +4,8 @@ import axios from 'axios';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import 'mapbox-gl/dist/mapbox-gl.css';
 
-mapboxgl.accessToken = import.meta.env.VITE_MAPBOX_TOKEN;
+const mapboxToken = import.meta.env.VITE_MAPBOX_TOKEN;
+mapboxgl.accessToken = mapboxToken || '';
 
 type UploadedFactory = {
   pid: number;
@@ -25,6 +26,7 @@ function App() {
   const map = useRef<mapboxgl.Map | null>(null);
   const hoverPopup = useRef<mapboxgl.Popup | null>(null);
   const isMapLoaded = useRef(false);
+  const resizeObserverRef = useRef<ResizeObserver | null>(null);
   const [data, setData] = useState<any[]>([]);
   const [params, setParams] = useState({
     scenario: 'rcp8p5',
@@ -33,6 +35,7 @@ function App() {
     model: '0000GFDL_ESM2M',
     bufferM: '1000'
   });
+  const isHistorical = params.scenario === 'historical';
   const [loading, setLoading] = useState(false);
   const [uploadedFactories, setUploadedFactories] = useState<UploadedFactory[]>([]);
   const [uploadError, setUploadError] = useState('');
@@ -154,18 +157,40 @@ function App() {
 
   useEffect(() => {
     if (map.current || !mapContainer.current) return;
+    if (!mapboxToken) {
+      console.error('VITE_MAPBOX_TOKEN is not set. Create a .env file with VITE_MAPBOX_TOKEN=pk.your_token');
+      return;
+    }
 
     map.current = new mapboxgl.Map({
       container: mapContainer.current,
-      style: 'mapbox://styles/leebrian0908/cmlpafe7l006e01sw6a3c47ir',
+      // Use Mapbox Standard (default) - custom style may be unpublished or inaccessible
+      style: 'mapbox://styles/leebrian0908/cmlpack5i009y01sk0bro6kj4',
       center: [121, 23], // Taiwan
       zoom: 4,
       pitch: 60, // Tilt for 3D
       antialias: true
     });
 
+    map.current.on('error', (e: any) => {
+      console.error('Mapbox error:', e?.error?.message ?? e);
+    });
+
     map.current.on('load', () => {
       isMapLoaded.current = true;
+      map.current?.resize();
+      map.current?.addControl(new mapboxgl.NavigationControl({ visualizePitch: true }), 'top-right');
+      map.current?.addControl(new mapboxgl.GeolocateControl({
+        positionOptions: { enableHighAccuracy: true },
+        trackUserLocation: true,
+        showUserHeading: true
+      }), 'top-right');
+
+      // Resize map when container size changes (panel drag, window resize)
+      if (mapContainer.current) {
+        resizeObserverRef.current = new ResizeObserver(() => map.current?.resize());
+        resizeObserverRef.current.observe(mapContainer.current);
+      }
 
       // Point source for circles
       map.current?.addSource('factories-points', {
@@ -275,6 +300,8 @@ function App() {
     });
 
     return () => {
+      resizeObserverRef.current?.disconnect();
+      resizeObserverRef.current = null;
       isMapLoaded.current = false;
       hoverPopup.current?.remove();
       hoverPopup.current = null;
@@ -321,7 +348,7 @@ function App() {
     try {
       const res = await axios.post(`${API_URL}/api/risk`, {
         scenario: params.scenario,
-        year: params.year,
+        year: isHistorical ? null : params.year,
         returnPeriod: params.rp,
         model: params.model,
         bufferMeters: Number(params.bufferM) || 0,
@@ -474,11 +501,11 @@ function App() {
   };
 
   return (
-    <div style={{ display: 'flex', height: '100vh', width: '100vw', overflow: 'hidden' }}>
+    <div style={{ display: 'flex', height: '100%', width: '100%', overflow: 'hidden' }}>
       <div
         style={{
           width: `${panelWidth}px`,
-          height: '100vh',
+          height: '100%',
           background: '#f8fafc',
           borderRight: '1px solid #e2e8f0',
           display: 'flex',
@@ -559,11 +586,13 @@ function App() {
                   onChange={e => setParams({...params, scenario: e.target.value})}
                   style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
                 >
+                  <option value="historical">Historical (歷史情境)</option>
                   <option value="rcp4p5">RCP 4.5 (Optimistic Scenario 樂觀情境)</option>
                   <option value="rcp8p5">RCP 8.5 (Pessimistic Scenario 悲觀情境)</option>
                 </select>
               </div>
 
+              {!isHistorical && (
               <div>
                 <label style={{display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '0.9rem'}}>Year</label>
                 <select
@@ -576,6 +605,7 @@ function App() {
                   <option value="2080">2080</option>
                 </select>
               </div>
+              )}
 
               <div>
                 <label style={{display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '0.9rem'}}>Return Period (years)</label>
@@ -621,7 +651,7 @@ function App() {
                   step={100}
                   value={params.bufferM}
                   onChange={e => setParams({ ...params, bufferM: e.target.value })}
-                  style={{ width: '92.5%', padding: '8px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                  style={{ width: '96%', padding: '8px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
                 />
               </div>
 
@@ -660,7 +690,8 @@ function App() {
               </button>
             </div>
 
-            {/* Chart Section - taller + readable labels */}
+            {/* Chart Section - only show after analysis */}
+            {data.length > 0 && (
             <div style={{ marginTop: '15px', display: 'flex', flexDirection: 'column', gap: '18px', paddingBottom: '12px' }}>
               <div style={{ height: chartHeight }}>
                 <h3 style={{ fontSize: '1rem', marginBottom: '10px' }}>Estimated Inundation Depth (m)</h3>
@@ -700,6 +731,7 @@ function App() {
                 </ResponsiveContainer>
               </div>
             </div>
+            )}
           </div>
 
           {/* drag handle */}
@@ -718,8 +750,21 @@ function App() {
         </div>
       </div>
 
-      <div style={{ flex: 1, height: '100vh', position: 'relative' }}>
-        <div ref={mapContainer} style={{ position: 'absolute', inset: 0 }} />
+      <div style={{ flex: 1, minWidth: 0, height: '100%', position: 'relative' }}>
+        <div ref={mapContainer} style={{ position: 'absolute', inset: 0, minHeight: 200 }} />
+        {!mapboxToken && (
+          <div style={{
+            position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
+            background: '#f1f5f9', color: '#64748b', padding: 24, textAlign: 'center', fontSize: '0.9rem'
+          }}>
+            <div>
+              <strong>Mapbox token required</strong><br />
+              Create <code>.env</code> in the project root with:<br />
+              <code>VITE_MAPBOX_TOKEN=pk.your_mapbox_token</code><br />
+              <a href="https://account.mapbox.com/access-tokens/" target="_blank" rel="noreferrer">Get a token at mapbox.com</a>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

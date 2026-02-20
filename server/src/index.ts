@@ -88,7 +88,8 @@ type RiverModel =
 
 function normalizeParams(queryOrBody: any) {
   const sc = String(queryOrBody?.scenario || 'rcp8p5');
-  const yr = Number(queryOrBody?.year) || 2050;
+  const isHistorical = sc === 'historical';
+  const yr = isHistorical ? null : (Number(queryOrBody?.year) || 2050);
 
   let rp = Number(queryOrBody?.returnPeriod) || 100;
   const VALID_RPS = [1, 2, 5, 10, 25, 50, 100, 250, 500, 1000];
@@ -142,24 +143,28 @@ function sanitizeFactories(input: any): Factory[] {
 function calculateRisk(
   factories: Factory[],
   sc: string,
-  yr: number,
+  yr: number | null,
   rp: number,
   model: RiverModel,
   bufferM: number,
   res: Response
 ) {
-  console.log(`Calculating for: ${sc} / ${yr} / RP${rp} / model=${model} / buffer=${bufferM}m / factories=${factories.length}`);
+  console.log(`Calculating for: ${sc} / ${yr ?? 'historical'} / RP${rp} / model=${model} / buffer=${bufferM}m / factories=${factories.length}`);
 
   const pointsFc = ee.FeatureCollection(
     factories.map(f => ee.Feature(ee.Geometry.Point(f.coords), { pid: f.pid }))
   );
 
   // Base filter first (soft model logic, same as original script)
-  const base = ee.ImageCollection('WRI/Aqueduct_Flood_Hazard_Maps/V2')
+  // Historical scenario: do NOT filter by year (avoids empty collection per WRI Aqueduct docs)
+  let base = ee.ImageCollection('WRI/Aqueduct_Flood_Hazard_Maps/V2')
     .filter(ee.Filter.eq('floodtype', 'inunriver'))
     .filter(ee.Filter.eq('climatescenario', sc))
-    .filter(ee.Filter.eq('returnperiod', rp))
-    .filter(ee.Filter.eq('year', yr));
+    .filter(ee.Filter.eq('returnperiod', rp));
+
+  base = yr !== null
+    ? base.filter(ee.Filter.eq('year', yr))
+    : base;
 
   const modelFiltered = base.filter(ee.Filter.eq('model', model));
   const dataset = ee.ImageCollection(ee.Algorithms.If(modelFiltered.size().gt(0), modelFiltered, base));
