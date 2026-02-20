@@ -90,16 +90,11 @@ Flood depth-damage functions: [Huizinga, J., de Moel, H., Szewczyk, W. (2017). G
 
 ## Getting Started (Local Development)
 
-### ⚙️ Prerequisites
+### Prerequisites
 
 Before setting up the project, ensure you have the following core tools installed on your machine:
 
-**1. Git**
-Used for cloning the repository and managing version control.
-* **macOS:** Open your terminal and run `git --version`. If it is not installed, your Mac will automatically prompt you to install the command line developer tools. Alternatively, if you use Homebrew, run `brew install git`.
-* **Windows:** Download and install the standard release from the [official Git website](https://git-scm.com/downloads).
-
-**2. Node.js (and npm)**
+**Node.js (and npm)**
 Required to run the JavaScript runtime environment for both the frontend React application and the backend Express server.
 * Go to the [official Node.js website](https://nodejs.org/) and download the **LTS (Long Term Support)** version.
 * Run the installer and follow the default prompts. This will automatically install `npm` (Node Package Manager) alongside Node.js.
